@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shingetsu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <canvas id="skyCanvas" aria-hidden="true"></canvas>
+
+      <section class="experience" aria-label="Shingetsu moon phase studio">
+        <header class="topbar">
+          <a class="brand" href="#" aria-label="Shingetsu home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>Shingetsu</span>
+          </a>
+
+          <nav class="nav-links" aria-label="Primary">
+            <a href="#phase">Phase</a>
+            <a href="#rituals">Rituals</a>
+            <a href="#signals">Signals</a>
+          </nav>
+        </header>
+
+        <div class="stage">
+          <section class="hero-panel" aria-labelledby="hero-title">
+            <p class="eyebrow">New moon operating space</p>
+            <h1 id="hero-title">Design the quiet before momentum.</h1>
+            <p class="hero-copy">
+              Tune a lunar workspace for planning, reflection, and the first
+              deliberate move after reset.
+            </p>
+
+            <div class="hero-actions" aria-label="Primary actions">
+              <button class="button primary" type="button" id="beginButton">Begin session</button>
+              <button class="button ghost" type="button" id="focusButton">Focus view</button>
+            </div>
+          </section>
+
+          <section class="moon-scene" aria-label="Animated moon view">
+            <div class="orbit-ring ring-one" aria-hidden="true"></div>
+            <div class="orbit-ring ring-two" aria-hidden="true"></div>
+            <div class="moon-wrap">
+              <div class="moon" id="moon" role="img" aria-label="Animated crescent moon"></div>
+              <div class="moon-shadow" aria-hidden="true"></div>
+            </div>
+            <div class="phase-readout" id="phase">
+              <span class="phase-label">Current phase</span>
+              <strong id="phaseName">Shingetsu</strong>
+              <span id="phasePercent">0% illuminated</span>
+            </div>
+          </section>
+        </div>
+
+        <section class="control-deck" aria-label="Session controls">
+          <article class="control-card">
+            <div>
+              <span class="card-kicker">Lunar phase</span>
+              <h2>Illumination</h2>
+            </div>
+            <label class="range-row" for="phaseRange">
+              <span>New</span>
+              <input id="phaseRange" type="range" min="0" max="100" value="18" />
+              <span>Full</span>
+            </label>
+          </article>
+
+          <article class="control-card">
+            <div>
+              <span class="card-kicker">Motion</span>
+              <h2>Sky tempo</h2>
+            </div>
+            <div class="segmented" role="group" aria-label="Animation speed">
+              <button type="button" class="segment" data-speed="0.35">Still</button>
+              <button type="button" class="segment active" data-speed="0.75">Drift</button>
+              <button type="button" class="segment" data-speed="1.4">Pulse</button>
+            </div>
+          </article>
+
+          <article class="control-card" id="rituals">
+            <div>
+              <span class="card-kicker">Ritual</span>
+              <h2>Session mode</h2>
+            </div>
+            <div class="toggle-stack">
+              <label>
+                <input type="checkbox" id="constellationToggle" checked />
+                <span>Constellations</span>
+              </label>
+              <label>
+                <input type="checkbox" id="breathingToggle" checked />
+                <span>Breathing glow</span>
+              </label>
+            </div>
+          </article>
+
+          <article class="signal-card" id="signals">
+            <span class="signal-dot" aria-hidden="true"></span>
+            <div>
+              <span class="card-kicker">Signal</span>
+              <h2 id="signalText">The sky is tuned for a calm start.</h2>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="src/app.js"></script>
+  </body>
+</html>
