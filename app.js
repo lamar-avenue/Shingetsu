@@ -65,7 +65,7 @@
   async function prepareAmbient() {
     if (!state.sound || !playing) return;
     try { await music.play(); ambientLevel(); }
-    catch { notice('Браузер не включил мелодию. Попробуй нажать кнопку звука.'); }
+    catch (error) { notice(error.name==='NotAllowedError'?'Нажми кнопку звука, чтобы разрешить воспроизведение.':'Не удалось загрузить музыку. Проверь, что lofi-evening.mp3 загружен рядом с index.html.'); }
   }
   music.volume=0;
   function setSound(on) { if(on && state.volume===0)state.volume=.65; state.sound = on; settingsUI(); save(); if (playing) prepareAmbient(); ambientLevel(); }
@@ -228,7 +228,7 @@
   let resumeAfterVideo=false;
   function openVideo(id){
     resumeAfterVideo=playing;pause();
-    surpriseVideo.src=`assets/surprise-0${id+1}.mp4`;
+    surpriseVideo.src=`surprise-0${id+1}.mp4`;
     surpriseVideo.volume=state.volume;surpriseVideo.muted=!state.sound;
     $('#videoTitle').textContent=['Первый сюрприз','Второй сюрприз','Третий сюрприз'][id];
     $('#videoError').hidden=true;videoDialog.showModal();
