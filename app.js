@@ -9,14 +9,14 @@
   let stored = {}, canSave = true;
   try { stored = JSON.parse(localStorage.getItem(key) || localStorage.getItem('shingetsu-story-v1') || '{}') || {}; } catch { canSave = false; }
   const state = {
-    version: 3,
+    version: 4,
     theme: ['night','amber','dusk','morning'].includes(stored.theme) ? stored.theme : 'night',
-    opened: Array.isArray(stored.opened) ? stored.opened.filter(i => [0,1,2].includes(i)) : [],
-    skipped: stored.skipped === true,
+    opened: stored.version === 4 && Array.isArray(stored.opened) ? stored.opened.filter(i => [0,1,2].includes(i)) : [],
+    skipped: stored.version === 4 && stored.skipped === true,
     calm: reduced,
     volume: Number.isFinite(stored.volume) ? Math.max(0,Math.min(1,stored.volume)) : .65,
     sound: stored.sound === true,
-    time: stored.version === 3 ? timeline.clampTime(stored.time, data.duration) : 0,
+    time: stored.version === 4 ? timeline.clampTime(stored.time, data.duration) : 0,
   };
   let playing = false, started = false, currentCue = -1, currentPhoto = -2, lastTick = 0, lastSaved = -1;
   let audioRevision = 0, mediaClock = false;
@@ -117,40 +117,24 @@
   const board = $('#board');
   const lines = $('.board-lines');
   for (let y=0;y<8;y++) for (let x=0;x<8;x++) { const el=document.createElement('span'); el.className='square'+((x+y)%2?' dark':''); el.setAttribute('aria-hidden','true'); board.insertBefore(el,lines); }
-  // Narrative study, not a recorded match. The knight leaves a supported square,
-  // sees the queen's diagonal, finds f5, and gains support from its own queen.
-  const positions = [
-    ['wk','♚',6,7],['wq','♛',3,7],['wr','♜',5,7],['wb','♝',2,4],['wn','♞',5,5],['we','♟',4,4],['wg','♟',6,6],['wh','♟',7,6],
-    ['bk','♚',6,0],['bq','♛',3,0],['br','♜',5,0],['bb','♝',2,0],['bn','♞',2,2],['bd','♟',3,2],['be','♟',4,3],['bg','♟',6,1],['bh','♟',7,1],
-  ];
-  const pieces = positions.map(([id,glyph,x,y]) => { const el=document.createElement('span'); el.className='piece'+(id[0]==='b'?' black':''); el.textContent=glyph; el.setAttribute('aria-hidden','true'); board.append(el); return {id,x,y,el}; });
-  function ease(value) { const p=Math.max(0,Math.min(1,value)); return p*p*(3-2*p); }
-  let boardStep = -1;
-  const notes=['Поспешный шаг.','Последствия становятся заметны.','Пауза. Время увидеть позицию иначе.','Другой путь всё ещё есть.','Не отменить прошлое. Продолжить.','И поддержать следующий шаг.'];
-  function boardFrame(cue, time) {
-    const step=cue.step;
-    const local=time-cue.start;
-    const move=state.calm ? (local>=1?1:0) : ease((local-1)/2.8);
-    pieces.forEach(p=>{
-      let x=p.x,y=p.y;
-      if(p.id==='wn'){
-        if(step===0){x=5+2*move;y=5-move;}
-        else if(step<4){x=7;y=4;}
-        else if(step===4){x=7-2*move;y=4-move;}
-        else {x=5;y=3;}
-      }
-      if(p.id==='wq'&&step===5){x=3+2*move;y=7-2*move;}
-      p.el.style.left=`${x*12.5}%`;p.el.style.top=`${y*12.5}%`;
-    });
-    if(boardStep!==step){
-      boardStep=step;
-      const regret=step===1||step===2;
-      $$('.square').forEach((el,i)=>{el.classList.toggle('regret',regret&&i===39);el.classList.toggle('last',step>=4&&i===29);});
-      $('#threatLine').setAttribute('d',regret?'M350 50L750 450':'');
-      $('#moveLine').setAttribute('d',step===3?'M750 450L550 350':step===5?'M550 550L550 350':'');
-      $('#boardNote').textContent=notes[step];
-      board.setAttribute('aria-label',`Шахматный этюд. ${['Конь уходит с f3 на h4.','Конь на h4 оказался под ударом ферзя d8.','Позиция замерла; диагональ угрозы подсвечена.','Намечается путь коня с h4 на f5.','Конь перемещается с h4 на f5.','Ферзь идёт с d1 на f3, поддерживая коня на f5.'][step]}`);
-    }
+  const chess = window.StoryChess;
+  chess.configure(data.cues);
+  const glyphs = {k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+  const pieces = chess.initial.map(([id,type])=>{
+    const el=document.createElement('span');el.className='piece'+(id[0]==='b'?' black':'');
+    el.textContent=glyphs[type];el.setAttribute('aria-hidden','true');board.append(el);return {id,el};
+  });
+  let lastMove=-2;
+  function boardFrame(cue,time){
+    const frame=chess.positionAt(time,state.calm);
+    frame.pieces.forEach(p=>{const el=pieces.find(item=>item.id===p.id).el;el.hidden=!p.visible;el.style.left=`${p.x*12.5}%`;el.style.top=`${p.y*12.5}%`;});
+    if(frame.active===lastMove)return;lastMove=frame.active;
+    const move=frame.move;
+    const from=move?chess.xy(move.from):[-1,-1],to=move?chess.xy(move.to):[-1,-1];
+    $$('.square').forEach((el,i)=>{el.classList.remove('regret');el.classList.toggle('last',i===from[1]*8+from[0]||i===to[1]*8+to[0]);});
+    $('#threatLine').setAttribute('d','');$('#moveLine').setAttribute('d','');
+    $('#boardNote').textContent=move?`${move.side==='w'?'Белые':'Чёрные'}: ${move.from} → ${move.to}. ${move.note}`:'История уже началась. Посмотрим, что будет дальше.';
+    board.setAttribute('aria-label','Шахматная сцена. '+$('#boardNote').textContent);
   }
   const brokenPhotos=new Set();
   let activePhotoSlot=0;
@@ -177,7 +161,7 @@
     if(frame.index!==currentCue){
       currentCue=frame.index;
       ['moment','letters','chess','final'].forEach(name=>{$(`#${name}Scene`).hidden=name!==frame.cue.scene;});
-      $('#chapterName').textContent={moment:'Слова и моменты',letters:'Три сюрприза',chess:'Следующий ход',final:'Продолжение'}[frame.cue.scene];
+      $('#chapterName').textContent={moment:'',letters:'Три сюрприза',chess:'Следующий ход',final:'Продолжение'}[frame.cue.scene];
       setText($(`#${frame.cue.scene}Text`),frame.cue.text);
     }
     if(frame.cue.scene==='chess')boardFrame(frame.cue,state.time);
@@ -222,28 +206,44 @@
   $('#settingsButton').addEventListener('click',()=>{resumeAfterSettings=playing;pause();$('#settings').showModal();});
   $('#closeSettings').addEventListener('click',()=>$('#settings').close());
   $('#settings').addEventListener('close',()=>{if(resumeAfterSettings&&started)play();resumeAfterSettings=false;});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)pause();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(playing)pause();surpriseVideo.pause();}});
   window.addEventListener('pagehide',()=>{pause();});
   document.addEventListener('keydown',event=>{
-    if(!started||$('#settings').open||event.code!=='Space'||['INPUT','SELECT','BUTTON','A'].includes(event.target.tagName))return;
+    if(!started||$('#settings').open||videoDialog.open||event.code!=='Space'||['INPUT','SELECT','BUTTON','A'].includes(event.target.tagName))return;
     event.preventDefault();playing?pause():play();
   });
   function letterUI() {
     $$('[data-envelope]').forEach(button=>{
       const id=Number(button.dataset.envelope), open=state.opened.includes(id);
-      button.setAttribute('aria-expanded',String(open));
-      $(`#letter${id}`).hidden=!open;
+      button.classList.toggle('opened',open);
     });
     const count=new Set(state.opened).size;
-    $('#lettersHint').textContent=count===3?'Все сюрпризы у тебя. Побудь с ними немного — история продолжится.':count?`Открыто ${count} из 3. Ещё кое-что осталось.`:'Открой конверты в любом порядке.';
     $('#skipLetters').hidden=count===3;
   }
   function releaseLetters() {
     if(playing && data.narration){playing=false;play();}
     lastTick=performance.now();save();
   }
+  const videoDialog=$('#videoDialog'), surpriseVideo=$('#surpriseVideo');
+  let resumeAfterVideo=false;
+  function openVideo(id){
+    resumeAfterVideo=playing;pause();
+    surpriseVideo.src=`assets/surprise-0${id+1}.mp4`;
+    surpriseVideo.volume=state.volume;surpriseVideo.muted=!state.sound;
+    $('#videoTitle').textContent=['Первый сюрприз','Второй сюрприз','Третий сюрприз'][id];
+    $('#videoError').hidden=true;videoDialog.showModal();
+    surpriseVideo.onloadedmetadata=()=>{surpriseVideo.style.aspectRatio=`${surpriseVideo.videoWidth} / ${surpriseVideo.videoHeight}`;};
+    surpriseVideo.play().catch(()=>{notice('Нажми ▶ в видео, чтобы начать просмотр.');});
+  }
+  $('#closeVideo').addEventListener('click',()=>videoDialog.close());
+  surpriseVideo.addEventListener('error',()=>{$('#videoError').hidden=false;});
+  videoDialog.addEventListener('close',()=>{
+    surpriseVideo.pause();surpriseVideo.removeAttribute('src');surpriseVideo.load();
+    if(resumeAfterVideo&&started)play();resumeAfterVideo=false;
+  });
   $$('[data-envelope]').forEach(button=>button.addEventListener('click',()=>{
     const id=Number(button.dataset.envelope);
+    openVideo(id);
     if(!state.opened.includes(id))state.opened.push(id);
     letterUI();save();
     if(state.opened.length===3)releaseLetters();
