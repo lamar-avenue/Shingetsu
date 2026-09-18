@@ -9,14 +9,14 @@
   let stored = {}, canSave = true;
   try { stored = JSON.parse(localStorage.getItem(key) || localStorage.getItem('shingetsu-story-v1') || '{}') || {}; } catch { canSave = false; }
   const state = {
-    version: 4,
+    version: 5,
     theme: ['night','amber','dusk','morning'].includes(stored.theme) ? stored.theme : 'night',
-    opened: stored.version === 4 && Array.isArray(stored.opened) ? stored.opened.filter(i => [0,1,2].includes(i)) : [],
-    skipped: stored.version === 4 && stored.skipped === true,
+    opened: stored.version === 5 && Array.isArray(stored.opened) ? stored.opened.filter(i => [0,1,2].includes(i)) : [],
+    skipped: stored.version === 5 && stored.skipped === true,
     calm: reduced,
     volume: Number.isFinite(stored.volume) ? Math.max(0,Math.min(1,stored.volume)) : .65,
     sound: stored.sound === true,
-    time: stored.version === 4 ? timeline.clampTime(stored.time, data.duration) : 0,
+    time: stored.version === 5 ? timeline.clampTime(stored.time, data.duration) : 0,
   };
   let playing = false, started = false, currentCue = -1, currentPhoto = -2, lastTick = 0, lastSaved = -1;
   let audioRevision = 0, mediaClock = false;
@@ -248,8 +248,9 @@
     letterUI();save();
     if(state.opened.length===3)releaseLetters();
   }));
-  $('#skipLetters').addEventListener('click',()=>{state.skipped=true;seek(data.envelopeEnd);releaseLetters();if(!playing)play();});
+  $('#skipLetters').addEventListener('click',()=>{state.skipped=true;seek(data.envelopeEnd);releaseLetters();if(!playing&&state.time<data.duration)play();});
   function updateStart(){const resume=state.time>1&&state.time<data.duration;$('#startButton').innerHTML=resume?'<span aria-hidden="true">▶</span> Продолжить историю':'<span aria-hidden="true">▶</span> Смотреть историю';$('#restartStart').hidden=!resume;}
+  $('#lettersScene').append($('#endActions'));
   $('#finalScene').classList.toggle('has-photos', data.photos.length > 0);
   letterUI();settingsUI();updateStart();render();playerUI();requestAnimationFrame(tick);
 })();
